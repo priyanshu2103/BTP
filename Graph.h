@@ -11,8 +11,8 @@ class Graph
         int nPeers;                     // Total number of peers in network
         int nPeersSince;                // Number of peers added to graph since last clustering
         vector<int> subtrackers;        // IDs of subtrackers
-        double ** distMatrix;
-        vector<Peer*> peers;
+        double ** distMatrix;           // Distance matrix of size nPeers*nPeers
+        vector<Peer*> peers;            // List of peers
         unordered_map<int, Peer*> IDPeerMapping; // Used to return Peer from its ID
 
 
@@ -20,7 +20,8 @@ class Graph
         void assignSubtracker(Peer*);   // Assign a subtracker to this peer this is after initialisation and reclustering
         void clusterGraph(int);                 // Cluster the graph
         double computeDistance(Peer*, Peer*);   // Computes the distance between two peers 
-        void computeDistMatrix();
+        void computeDistMatrix();               // Compute distance matrix
+        void printPeerInfo();
         Graph();
 };
 
@@ -111,5 +112,14 @@ void Graph::computeDistMatrix()
         {
             distMatrix[i][j] = computeDistance(IDPeerMapping[i], IDPeerMapping[j]);
         }
+    }
+}
+
+void Graph::printPeerInfo()
+{
+    cout<<"----------------------PEER INFO----------------------"<<endl;
+    for(int i=0;i<nPeers;i++)
+    {
+        cout<<peers[i]->ID<<" : ("<<peers[i]->x<<", "<<peers[i]->y<<")"<<endl;
     }
 }
