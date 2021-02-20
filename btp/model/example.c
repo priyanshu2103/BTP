@@ -6,7 +6,7 @@
 #include <stdio.h>
 #include <stdlib.h>  /* The standard C libraries */
 
-#include "cluster.h" /* The C Clustering Library */
+#include "ns3/cluster.h" /* The C Clustering Library */
 
 /* ========================================================================= */
 

@@ -1,6 +1,6 @@
 #include<bits/stdc++.h>
-#include "Peer.h"
-#include "cluster.h"
+#include "ns3/Peer.h"
+#include "ns3/cluster.h"
 
 using namespace std;
 
@@ -66,7 +66,9 @@ void Graph::clusterGraph(int nClusters)
 
 
     int npass = 1000;
-    int* clusterid = (int*)malloc(nPeers*sizeof(int));
+    // int* clusterid = (int*)malloc(nPeers*sizeof(int));
+    // cout<<nPeers<<endl;
+    int clusterid[nPeers] = {0};
     double error;
     int ifound = 0;
     kmedoids(nClusters, nPeers, distMatrix, npass, clusterid, &error, &ifound);
@@ -98,9 +100,9 @@ double Graph::computeDistance(Peer* peer1, Peer* peer2)
 
 void Graph::computeDistMatrix()
 {
-    if(sizeof(distMatrix)!=0)
+    if(distMatrix != NULL)
     {
-        free(distMatrix);
+        distMatrix = NULL;
     }
 
     distMatrix = (double**)malloc(sizeof(double*)*nPeers);

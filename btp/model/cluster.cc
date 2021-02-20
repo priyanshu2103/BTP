@@ -33,7 +33,7 @@
 #include <float.h>
 #include <limits.h>
 #include <string.h>
-#include "cluster.h"
+#include "ns3/cluster.h"
 
 /* ************************************************************************ */
 
