@@ -11,3 +11,8 @@ How to run:
 ./waf configure
 ./waf build
 
+How to run without NS-3 version:
+
+1) cd without_NS-3
+2) g++ cluster.c main.cpp -o main
+3) ./main
