@@ -43,10 +43,12 @@ int main()
     G->printSubtrackerInfo();
 
 
+    // Testing threads for peers
+    G->startPeers();
 
-    // Code for adding peers to the graph at random time interval
 
     
 
 }
 // TODO: might have to add new class for subtrackers for threading
+// TODO:Code for adding peers to the graph at random time interval

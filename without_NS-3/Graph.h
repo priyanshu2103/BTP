@@ -1,6 +1,6 @@
 #include<bits/stdc++.h>
-#include "Peer.h"
 #include "cluster.h"
+#include "Subtracker.h"
 
 using namespace std;
 
@@ -12,11 +12,12 @@ class Graph
         int nClusters;
         int nPeers;                     // Total number of peers in network
         int nPeersSince;                // Number of peers added to graph since last clustering
-        vector<int> subtrackers;        // IDs of subtrackers
+        vector<Subtracker*> subtrackers;        // IDs of subtrackers
         double ** distMatrix;           // Distance matrix of size nPeers*nPeers
         vector<Peer*> peers;            // List of peers
         unordered_map<int, Peer*> IDPeerMapping; // Used to return Peer from its ID
-        unordered_map<int, vector<Peer*>> subtrackerToPeer;  // Stores peers for each subtracker, mapping from ID of subtracker to peer IDs
+        unordered_map<int, Subtracker*> IDSubtrackerMapping; // Used to return subtracker from its ID
+        // unordered_map<int, vector<Peer*>> subtrackerToPeer;  // Stores peers for each subtracker, mapping from ID of subtracker to peer IDs
 
         void addPeer(Peer*);            // Simply add peer in the graph 
         void assignSubtracker(Peer*);   // Assign a subtracker to this peer this is after initialisation and reclustering
@@ -25,7 +26,8 @@ class Graph
         void computeDistMatrix();               // Compute distance matrix
         void assignPacketsToClusters(int);
         void printPeerInfo();
-        void printSubtrackerInfo();             
+        void printSubtrackerInfo();      
+        void startPeers();       
         Graph();
 };
 
@@ -51,14 +53,14 @@ void Graph::addPeer(Peer* peer)
     }
 }
 
-// Find the suubtracker which has least distance from this peer and assign it
+// Find the subtracker which has least distance from this peer and assign it
 void Graph::assignSubtracker(Peer* peer)
 {
     double min_distance = DBL_MAX;
-    int SID = -1;
-    for(int i=0;i<nClusters;i++)
+    Subtracker* SID = NULL;
+    for(int i=0;i<subtrackers.size();i++)
     {
-        double dist = computeDistance(IDPeerMapping[subtrackers[i]], peer);
+        double dist = computeDistance(IDPeerMapping[subtrackers[i]->ID], peer);
         if(dist < min_distance)
         {
             SID = subtrackers[i];
@@ -66,8 +68,9 @@ void Graph::assignSubtracker(Peer* peer)
         }
     }
 
-    peer->subtrackerID = SID;
-    subtrackerToPeer[SID].push_back(peer);
+    peer->subtracker = SID;
+    (SID->peers).push_back(peer);
+    // subtrackerToPeer[SID].push_back(peer);
 }
 
 void Graph::clusterGraph(int nClusters)
@@ -77,7 +80,13 @@ void Graph::clusterGraph(int nClusters)
     this->nPeersSince = 0;
 
     // Empty subtracekrToPeer mapping before clustering
-    subtrackerToPeer.clear();
+    // subtrackerToPeer.clear();
+
+    // Empty subtrackers vector as subtrackers will be created again and each peer will be a subtracker again
+    subtrackers.clear();
+
+    // Also empty the IDSubtrackermapping
+    IDSubtrackerMapping.clear();
 
     int npass = 1000;
     // int* clusterid = (int*)malloc(nPeers*sizeof(int));
@@ -90,22 +99,41 @@ void Graph::clusterGraph(int nClusters)
     printf ("Solution found %d times; within-cluster sum of distances is %f\n",ifound, error);
     printf ("Cluster assignments:\n");
 
-    set<int> tempS;
+    // set<int> tempS;
     for (int i = 0; i < nPeers; i++)
     {
         printf ("Peer %d: cluster %d\n", i, clusterid[i]);
-        IDPeerMapping[i]->subtrackerID = clusterid[i];
-        subtrackerToPeer[clusterid[i]].push_back(IDPeerMapping[i]);    // Add peer to subtracker mapping list
-        tempS.insert(clusterid[i]);
+
+        // If subtracker not formed yet with this ID  
+        if(IDSubtrackerMapping.find(clusterid[i])==IDSubtrackerMapping.end())
+        {
+            Subtracker *s = new Subtracker();
+            s->ID = clusterid[i];
+            (s->peers).push_back(IDPeerMapping[i]);
+            subtrackers.push_back(s);
+            IDSubtrackerMapping[clusterid[i]] = s;
+            IDPeerMapping[i]->subtracker = s;
+        }
+        else
+        {
+            (IDSubtrackerMapping[clusterid[i]]->peers).push_back(IDPeerMapping[i]);
+            IDPeerMapping[i]->subtracker = IDSubtrackerMapping[clusterid[i]];
+        }
+
+        
+
+        // IDPeerMapping[i]->subtrackerID = clusterid[i];
+        // subtrackerToPeer[clusterid[i]].push_back(IDPeerMapping[i]);    // Add peer to subtracker mapping list
+        // tempS.insert(clusterid[i]);
     }
 
-    // Stores subtracker IDs 
-    subtrackers.clear();
-    for(auto it=tempS.begin();it!=tempS.end();it++)
-    {
-        this->subtrackers.push_back(*it);
-    }
-    // cout<<"A:"<<subtrackers.size()<<endl;
+    // // Stores subtracker IDs 
+    // subtrackers.clear();
+    // for(auto it=tempS.begin();it!=tempS.end();it++)
+    // {
+    //     this->subtrackers.push_back(*it);
+    // }
+    // // cout<<"A:"<<subtrackers.size()<<endl;
 
 
 }
@@ -148,11 +176,11 @@ void Graph::printSubtrackerInfo()
 
     set<int> packetsInSubtrackcer;
     cout<<"subtracker ID:"<<"Peer IDs(packets)"<<endl;
-    for(auto it=subtrackerToPeer.begin(); it!=subtrackerToPeer.end();it++)
+    for(auto it=subtrackers.begin(); it!=subtrackers.end();it++)
     {
         packetsInSubtrackcer.clear();
-        cout<<it->first<<": ";
-        for(auto it1=it->second.begin(); it1!=it->second.end();it1++)
+        cout<<(*it)->ID<<": ";
+        for(auto it1 = (*it)->peers.begin();it1 != (*it)->peers.end();it1++)
         {
             cout<<(*it1)->ID<<"(";
             for(auto it2=(*it1)->packets.begin();it2!=(*it1)->packets.end();it2++)
@@ -179,8 +207,8 @@ void Graph::assignPacketsToClusters(int numPackets)
     // Each clusters should have atleast one instance of each packet
     for(auto it=subtrackers.begin();it!=subtrackers.end();it++)
     {
-        int SID = *it;
-        vector<Peer*> peers = subtrackerToPeer[SID];
+        
+        vector<Peer*> peers = (*it)->peers;
         
         // To store which all packets have been added to this cluster so that any remaining can be randomly added to peers later
         set<int> packetsRemaining = packets;
@@ -194,7 +222,11 @@ void Graph::assignPacketsToClusters(int numPackets)
                 float r = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
                 if(r>0.9)
                 {
+                    // *it1 peer gets packet i 
                     (*it1)->packets.push_back(i);
+
+                    // Add this packet to peer maping in Subtracker(*it) also
+                    (*it)->packetToPeersMapping[i].push_back(*it1);
                     packetsRemaining.erase(i);
                 }
             }
@@ -205,9 +237,26 @@ void Graph::assignPacketsToClusters(int numPackets)
         {
             for(auto it2=packetsRemaining.begin();it2!=packetsRemaining.end();it2++)
             {
-                int randNum = rand()%(subtrackerToPeer[SID].size());  // Add packet *it2 to this peer
-                subtrackerToPeer[SID][randNum]->packets.push_back(*it2);
+                int randNum = rand()%((*it)->peers.size());  // Add packet *it2 to this peer
+                (*it)->peers[randNum]->packets.push_back(*it2);
+
+                    // Add this packet to peer maping in Subtracker(*it) also
+                    (*it)->packetToPeersMapping[*it2].push_back((*it)->peers[randNum]);
             }
         }
     }
+}
+
+void Graph::startPeers()
+{
+    vector<thread> threads;
+    for(auto it=peers.begin();it!=peers.end();it++)
+    {
+        threads.push_back(thread(&Peer::operate, *it));
+    }
+    for(auto& thread: threads){
+        thread.join();
+    }
+
+    cout<<"Threading complete"<<endl;
 }
