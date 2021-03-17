@@ -109,6 +109,8 @@ void Graph::clusterGraph(int nClusters)
         {
             Subtracker *s = new Subtracker();
             s->ID = clusterid[i];
+            s->x = IDPeerMapping[clusterid[i]]->x;
+            s->y = IDPeerMapping[clusterid[i]]->y;
             (s->peers).push_back(IDPeerMapping[i]);
             subtrackers.push_back(s);
             IDSubtrackerMapping[clusterid[i]] = s;
@@ -138,6 +140,7 @@ void Graph::clusterGraph(int nClusters)
 
 }
 
+// TODO: change this to sqrt later on
 double Graph::computeDistance(Peer* peer1, Peer* peer2)
 {
     return pow(peer1->x - peer2->x, 2) + pow(peer1->y - peer2->y, 2);
@@ -223,7 +226,7 @@ void Graph::assignPacketsToClusters(int numPackets)
                 if(r>0.9)
                 {
                     // *it1 peer gets packet i 
-                    (*it1)->packets.push_back(i);
+                    (*it1)->packets.insert(i);
 
                     // Add this packet to peer maping in Subtracker(*it) also
                     (*it)->packetToPeersMapping[i].push_back(*it1);
@@ -238,7 +241,7 @@ void Graph::assignPacketsToClusters(int numPackets)
             for(auto it2=packetsRemaining.begin();it2!=packetsRemaining.end();it2++)
             {
                 int randNum = rand()%((*it)->peers.size());  // Add packet *it2 to this peer
-                (*it)->peers[randNum]->packets.push_back(*it2);
+                (*it)->peers[randNum]->packets.insert(*it2);
 
                     // Add this packet to peer maping in Subtracker(*it) also
                     (*it)->packetToPeersMapping[*it2].push_back((*it)->peers[randNum]);
@@ -247,6 +250,7 @@ void Graph::assignPacketsToClusters(int numPackets)
     }
 }
 
+// TODO: Don't start threads for subtrackers there might be some problems
 void Graph::startPeers()
 {
     vector<thread> threads;
