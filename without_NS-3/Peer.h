@@ -2,7 +2,7 @@
 // #define _PEER_GUARD
 
 #include<bits/stdc++.h>
-// #include "Subtracker.h"
+#include "constants.h"
 using namespace std;
 
 class Subtracker;   // This will only work if we have a pointer to Subtracker
@@ -49,7 +49,7 @@ void Peer::operate()
 
 
     // change this 10 to a variable by adding a constants file
-    for(int i=0;i<10;i++)
+    for(int i=0;i<NUM_PACKETS;i++)
     {
         if(packets.find(i)!=packets.end())
         {
@@ -60,15 +60,15 @@ void Peer::operate()
         {
             // Wait for RTT/2
             // TODO: may have to change speed of transmission from 3*10^8 to something else
-            this_thread::sleep_for(chrono::nanoseconds((int)(distanceFromSubtracker*10/6)));    // Add this time
+            this_thread::sleep_for(chrono::nanoseconds((int)(distanceFromSubtracker*pow(10, 9)/(2*TRASMISSION_SPEED))));    // Add this time
             Peer* p = subtracker->getPeer(i, this);
             // Again wait for RTT/2 as subtracker takes time to return the peer
-            this_thread::sleep_for(chrono::nanoseconds((int)(distanceFromSubtracker*10/6))); 
+            this_thread::sleep_for(chrono::nanoseconds((int)(distanceFromSubtracker*pow(10, 9)/(2*TRASMISSION_SPEED)))); 
             // Wait for the peer to send this packet
             // TODO:How to incorporate M/M/1 queue here
             this_thread::sleep_for(chrono::nanoseconds(2));
             // Again wait for RTT/2 to notify the susbtracker that I have this packet
-            this_thread::sleep_for(chrono::nanoseconds((int)(distanceFromSubtracker*10/6)));
+            this_thread::sleep_for(chrono::nanoseconds((int)(distanceFromSubtracker*pow(10, 9)/(2*TRASMISSION_SPEED))));
             subtracker->packetReceivedNotification(i, this);
 
             packets.insert(i);

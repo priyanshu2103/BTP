@@ -1,10 +1,10 @@
 #include<bits/stdc++.h>
 #include "cluster.h"
 #include "Subtracker.h"
+// #include "constants.h"
 
 using namespace std;
 
-#define THRESHOLD 10
 
 class Graph 
 {
