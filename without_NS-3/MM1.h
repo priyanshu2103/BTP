@@ -1,20 +1,31 @@
-#include<bits/stdc++.h>
+#ifndef _MM1_GUARD
+#define _MM1_GUARD
 
+#include<bits/stdc++.h>
+#include "constants.h"
 using namespace std;
 
-// This struct will store timing information for each migrant
-struct Timing // queue entering time, queue leaving time, system leaving time
-{ 
-   double x;
-   double y;
-   double z; 
+class MM1
+{
+    public:
+        // This struct will store timing information for each migrant
+        struct Timing
+        {
+            double x, y, z;
+        };
+        queue<double> times;
+        queue<double> getTime();
+        MM1();
+    
 };
 
+MM1::MM1()
+{}
 
-int main(){
+queue<double> MM1::getTime(){
 
-    double lambda_1 = 2;
-    double mu_1 = 1;
+    double lambda_1 = 0.1;
+    double mu_1 = 0.06;
 
 
     // Exponential distribution generation
@@ -40,7 +51,7 @@ int main(){
     // Time when the current servicing will be completed
     double processing_complete_timing = current_time;
 
-    long long total_migrants = 10;
+    long long total_migrants = NUM_PACKETS*INITIAL_PEERS;
 
     // Queue which will hold the migrants
     queue<Timing> waiting_q = queue<Timing> ();
@@ -85,7 +96,7 @@ int main(){
             currently_processing.z = current_time;
             
             completed_migrants++;
-            cout<<"Migrant:"<<completed_migrants<<"--> {"<<currently_processing.x<<" "<<currently_processing.y<<" "<<currently_processing.z<<" "<<currently_processing.z - currently_processing.x<<"}"<<endl;
+            this->times.push(currently_processing.z - currently_processing.x);
             if(completed_migrants == total_migrants){
                 break;
             }
@@ -104,6 +115,8 @@ int main(){
         }
 
     }
-    return(0);
+
+    return times;
 
 }
+#endif

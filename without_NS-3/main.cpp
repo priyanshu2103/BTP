@@ -1,6 +1,5 @@
 #include<bits/stdc++.h>
 #include "Graph.h"
-// #include "constants.h"
 using namespace std;
 
 
@@ -20,8 +19,8 @@ int main()
 
     // nClusters, will increase after each nPeersSince threshold
     int nClusters = INITIAL_CLUSTERS;
-
-    Graph* G = new Graph();
+    MM1* mm1 = new MM1();
+    Graph* G = new Graph(mm1); 
 
     // Form initial Graph/Network of INITIAL_PEERS peers
 

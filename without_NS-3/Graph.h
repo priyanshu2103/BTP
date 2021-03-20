@@ -1,7 +1,10 @@
+#ifndef _GRAPH_GUARD
+#define _GRAPH_GUARD
+
 #include<bits/stdc++.h>
 #include "cluster.h"
 #include "Subtracker.h"
-// #include "constants.h"
+#include "MM1.h"
 
 using namespace std;
 
@@ -17,6 +20,7 @@ class Graph
         vector<Peer*> peers;            // List of peers
         unordered_map<int, Peer*> IDPeerMapping; // Used to return Peer from its ID
         unordered_map<int, Subtracker*> IDSubtrackerMapping; // Used to return subtracker from its ID
+        MM1* mm1Queue;
         // unordered_map<int, vector<Peer*>> subtrackerToPeer;  // Stores peers for each subtracker, mapping from ID of subtracker to peer IDs
 
         void addPeer(Peer*);            // Simply add peer in the graph 
@@ -27,15 +31,17 @@ class Graph
         void assignPacketsToClusters(int);
         void printPeerInfo();
         void printSubtrackerInfo();      
-        void startPeers();       
-        Graph();
+        void startPeers();    
+        void peerPacketTimes();   
+        Graph(MM1*);
 };
 
-Graph::Graph()
+Graph::Graph(MM1* q)
 {
     this->nClusters = 0;
     this->nPeers = 0;
     this->nPeersSince = 0;
+    this->mm1Queue = q;
 }
 
 void Graph::addPeer(Peer* peer)
@@ -253,6 +259,15 @@ void Graph::assignPacketsToClusters(int numPackets)
 // TODO: Don't start threads for subtrackers there might be some problems
 void Graph::startPeers()
 {
+    // First get queue times from MM1
+    queue<double> times = mm1Queue->getTime();
+
+    // Give this queue to all the peers
+    for(auto it:peers)
+    {
+        it->mm1Times = times;
+    }
+
     vector<thread> threads;
     for(auto it=peers.begin();it!=peers.end();it++)
     {
@@ -263,4 +278,19 @@ void Graph::startPeers()
     }
 
     cout<<"Threading complete"<<endl;
+    peerPacketTimes();
 }
+
+void Graph::peerPacketTimes()
+{
+    for(auto it:peers)
+    {
+        cout<<it->ID<<":"<<endl;
+        for(auto it1:it->packetTime)
+        {
+            cout<<"{"<<it1.first<<" "<<it1.second<<"} ";
+        }
+        cout<<endl;
+    }
+}
+#endif
