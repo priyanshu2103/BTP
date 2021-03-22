@@ -20,10 +20,19 @@ class Peer
         unordered_set<int> packets;
         vector<pair<int, int>> packetTime;  // PeerID from which this packet is taken and Time to download each packet. In nanoseconds
         queue<double> mm1Times;
+        double QoE;                         // Given by 1/(mean+standard deviation) mean and standard deviation are of packet times
+        double alpha;                       // RTT parameter
+        double lambda;                      // Centdian calculation parameter
+        double centdianScore;
 
-        Peer(int, double, double);
+        // Storing only for Peers which send data to this peer ------DOUBT
+        unordered_map<int, double> PeerRTT;   // (1 − α) ∗ received RTT + α ∗ old RTT 
+
+        Peer(int, double, double, double, double);
         double computeDistance(Peer*, Peer*);
         void operate();
         double getQueueTime();
+        void changePeerRTT(int, double);  // PeerRTT[PeerID] = (1 − α) ∗ double + α ∗ old RTT 
+        void getPeerCentdian();
 };
 #endif

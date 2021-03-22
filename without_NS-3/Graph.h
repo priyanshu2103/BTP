@@ -21,6 +21,7 @@ class Graph
         unordered_map<int, Peer*> IDPeerMapping; // Used to return Peer from its ID
         unordered_map<int, Subtracker*> IDSubtrackerMapping; // Used to return subtracker from its ID
         MM1* mm1Queue;
+        unordered_map<Peer*, vector<int>> initialPacketAssignment;  // Stores peer to packet assignment for use in iterations
         // unordered_map<int, vector<Peer*>> subtrackerToPeer;  // Stores peers for each subtracker, mapping from ID of subtracker to peer IDs
 
         void addPeer(Peer*);            // Simply add peer in the graph 
@@ -254,6 +255,12 @@ void Graph::assignPacketsToClusters(int numPackets)
             }
         }
     }
+
+    // Store initial packet assignment
+    for(auto it=peers.begin();it!=peers.end();it++)
+    {
+        initialPacketAssignment[*it].assign((*it)->packets.begin(),(*it)->packets.end());
+    }
 }
 
 // TODO: Don't start threads for subtrackers there might be some problems
@@ -277,8 +284,10 @@ void Graph::startPeers()
         thread.join();
     }
 
-    cout<<"Threading complete"<<endl;
+    cout<<"0th iteration complete"<<endl;
     peerPacketTimes();
+
+    
 }
 
 void Graph::peerPacketTimes()

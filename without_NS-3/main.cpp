@@ -26,7 +26,10 @@ int main()
 
     for(int i=0;i<INITIAL_PEERS;i++)
     {
-        Peer* p = new Peer(i, dist(rng), dist(rng));
+        // Initially assign random alpha and labda values to the peers
+        double rAlpha = static_cast <double> (rand()) / static_cast <double> (RAND_MAX);
+        double rLambda = static_cast <double> (rand()) / static_cast <double> (RAND_MAX);
+        Peer* p = new Peer(i, dist(rng), dist(rng), rAlpha, rLambda);
         G->addPeer(p);
     }
     G->printPeerInfo();
