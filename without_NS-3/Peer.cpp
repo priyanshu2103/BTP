@@ -9,6 +9,7 @@ Peer::Peer(int ID, double x, double y, double rAlpha, double rLambda)
     this->y = y;
     this->alpha = rAlpha;
     this->lambda = rLambda;
+    this->bestQoE = 0.0;
     packetTime.assign(NUM_PACKETS, {0, 0});
 }
 
@@ -95,6 +96,14 @@ void Peer::operate()
     sd = sqrt(sd);
 
     this->QoE = (double)1/(mean + sd);
+
+    // Storing the best QoE, alpha dn lambda values
+    if(QoE >= bestQoE)
+    {
+        bestQoE = QoE;
+        bestAlpha = alpha;
+        bestLambda = lambda;
+    }
 
 }
 double Peer::computeDistance(Peer* peer1, Peer* peer2)

@@ -7,6 +7,7 @@
 #define MIN_CORD 0
 #define MAX_CORD 100.0
 #define THRESHOLD 10
+#define MAX_ITER 5
 constexpr double TRASMISSION_SPEED = 300000000;
 
 #endif

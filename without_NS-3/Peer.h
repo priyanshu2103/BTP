@@ -20,10 +20,15 @@ class Peer
         unordered_set<int> packets;
         vector<pair<int, int>> packetTime;  // PeerID from which this packet is taken and Time to download each packet. In nanoseconds
         queue<double> mm1Times;
+        
+        // Maximize this
         double QoE;                         // Given by 1/(mean+standard deviation) mean and standard deviation are of packet times
         double alpha;                       // RTT parameter
         double lambda;                      // Centdian calculation parameter
         double centdianScore;
+        double bestQoE;                     // Stores the best QoE so far of this peer
+        double bestAlpha;                   // Stores the alpha corresponding to the best QoE
+        double bestLambda;                  // Stores the lambda corresponding to the best QoE
 
         // Storing only for Peers which send data to this peer ------DOUBT
         unordered_map<int, double> PeerRTT;   // (1 − α) ∗ received RTT + α ∗ old RTT 

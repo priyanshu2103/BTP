@@ -22,6 +22,12 @@ class Graph
         unordered_map<int, Subtracker*> IDSubtrackerMapping; // Used to return subtracker from its ID
         MM1* mm1Queue;
         unordered_map<Peer*, vector<int>> initialPacketAssignment;  // Stores peer to packet assignment for use in iterations
+        double globalBestAlpha;
+        double globalBestLambda;
+        unordered_map<Peer*, pair<double, double>> velocitiesParams;    // Peer->{v1, v2} v1->velocity for alpha dna v2->veloity for lambda
+        double c1;
+        double c2;
+        double w;
         // unordered_map<int, vector<Peer*>> subtrackerToPeer;  // Stores peers for each subtracker, mapping from ID of subtracker to peer IDs
 
         void addPeer(Peer*);            // Simply add peer in the graph 
@@ -34,6 +40,8 @@ class Graph
         void printSubtrackerInfo();      
         void startPeers();    
         void peerPacketTimes();   
+        void getBestParams();
+        void changeDPSOParams(int);
         Graph(MM1*);
 };
 
@@ -266,28 +274,119 @@ void Graph::assignPacketsToClusters(int numPackets)
 // TODO: Don't start threads for subtrackers there might be some problems
 void Graph::startPeers()
 {
+    // int iter = 0;
     // First get queue times from MM1
     queue<double> times = mm1Queue->getTime();
 
-    // Give this queue to all the peers
+    for(int iter=0;iter<MAX_ITER;iter++)
+    {
+        
+        // Chaning the initial variables for all peers
+        // TODO: check for packetTime and PeerRTT
+        for(auto it:peers)
+        {
+            it->mm1Times = times;
+            it->packets.clear();
+            copy(initialPacketAssignment[it].begin(), initialPacketAssignment[it].end(), inserter(it->packets, it->packets.end()));
+        }
+
+        vector<thread> threads;
+        for(auto it=peers.begin();it!=peers.end();it++)
+        {
+            threads.push_back(thread(&Peer::operate, *it));
+        }
+        for(auto& thread: threads){
+            thread.join();
+        }
+
+        cout<<"iteration " << iter <<" complete"<<endl;
+        peerPacketTimes();
+
+        /*
+            We have QoE, alphas, lambdas of all the peers at this moment
+            Basically two things to be done after each iteration
+                Optimise alpha and lambda for each peer
+                Change the subtracker for each cluster
+        */
+        // First get global alpha and lambda
+        getBestParams();
+
+        // Change DPSO params best computing velocity params
+        changeDPSOParams(iter);
+        // Change the vis' for each peer
+        for(auto it:peers)
+        {
+                double randNum = static_cast <double> (rand()) / static_cast <double> (RAND_MAX);
+                double randNum2 = static_cast <double> (rand()) / static_cast <double> (RAND_MAX);   
+                double va = w * velocitiesParams[it].first + c1 * randNum * (it->bestAlpha - it->alpha) + c2 * randNum2 * (globalBestAlpha - it->alpha);
+                double vl = w * velocitiesParams[it].second + c2 * randNum * (it->bestLambda - it->lambda) + c2 * randNum2 * (globalBestLambda - it->lambda);
+                velocitiesParams[it] = {va, vl};
+        }
+
+        // Change alpha and lambda for each peer
+        for(auto it:peers)
+        {
+            it->alpha += velocitiesParams[it].first;
+            it->lambda += velocitiesParams[it].second;
+        }
+
+        // Subtracker management algorithm
+        vector<Subtracker*> newSubtrackers;
+        for(auto it:subtrackers)
+        {
+            // For each subtracker get best peer with least centdian
+            Peer* bestPeer = NULL;
+            double bestScore = DBL_MAX;
+            for(auto it1:it->peers)
+            {
+                if(bestScore > it1->centdianScore)
+                {
+                    bestScore = it1->centdianScore;
+                    bestPeer = it1;
+                }
+            }
+            // Best Peer will be the new subtracker for this cluster
+            Subtracker* s = new Subtracker();
+            s->ID = bestPeer->ID;
+            s->x = bestPeer->x;
+            s->y = bestPeer->y;
+            s->peers = it->peers;   // -----TODO: check if previous subtracker is added or not i.e. check if peers in subtracker contains itself or not
+            s->packetToPeersMapping = it->packetToPeersMapping; // TODO: check if this is correct or not
+            newSubtrackers.push_back(s);
+
+            // Now change the subtracker for all the peers in this cluster i.e. with it as their subtracker
+            for(auto it1:it->peers)
+            {
+                it1->subtracker = s;
+            }
+        }
+
+        subtrackers.clear();
+        subtrackers = newSubtrackers;
+    }
+    
+
+
+}
+
+void Graph::getBestParams()
+{
+    double q = DBL_MIN;
     for(auto it:peers)
     {
-        it->mm1Times = times;
+        if(it->bestQoE >= q)
+        {
+            globalBestAlpha = it->bestAlpha;
+            globalBestLambda = it->bestLambda;
+        }
     }
+}
 
-    vector<thread> threads;
-    for(auto it=peers.begin();it!=peers.end();it++)
-    {
-        threads.push_back(thread(&Peer::operate, *it));
-    }
-    for(auto& thread: threads){
-        thread.join();
-    }
-
-    cout<<"0th iteration complete"<<endl;
-    peerPacketTimes();
-
-    
+void Graph::changeDPSOParams(int iter)
+{
+    w = 1.3 * exp(-1 * (iter * M_PI)/(2 * MAX_ITER)) + 0.1;
+    c1 = 2.5 * exp(-1 * (iter * M_PI)/(2 * MAX_ITER));
+    c2 = -2.5 * exp(-1 * (iter * M_PI)/(2 * MAX_ITER)) + 3;
 }
 
 void Graph::peerPacketTimes()
