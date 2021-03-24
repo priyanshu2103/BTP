@@ -16,7 +16,12 @@ Peer::Peer(int ID, double x, double y, double rAlpha, double rLambda)
 // Main function for each thread i.e peer
 void Peer::operate()
 {
-    cout<<"Inside thread for peer:"<<this->ID<<endl;
+    // Clearing packetTime and PeerRTT for every iteration
+    packetTime.clear();
+    packetTime.assign(NUM_PACKETS, {0,0});
+    PeerRTT.clear();
+
+    // cout<<"Inside thread for peer:"<<this->ID<<endl;
 
     /* 
         Determine which packet I want

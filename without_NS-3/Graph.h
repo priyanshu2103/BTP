@@ -42,6 +42,7 @@ class Graph
         void peerPacketTimes();   
         void getBestParams();
         void changeDPSOParams(int);
+        void printQoEPeers();
         Graph(MM1*);
 };
 
@@ -282,7 +283,6 @@ void Graph::startPeers()
     {
         
         // Chaning the initial variables for all peers
-        // TODO: check for packetTime and PeerRTT
         for(auto it:peers)
         {
             it->mm1Times = times;
@@ -300,7 +300,8 @@ void Graph::startPeers()
         }
 
         cout<<"iteration " << iter <<" complete"<<endl;
-        peerPacketTimes();
+        // peerPacketTimes();
+        printQoEPeers();
 
         /*
             We have QoE, alphas, lambdas of all the peers at this moment
@@ -400,5 +401,22 @@ void Graph::peerPacketTimes()
         }
         cout<<endl;
     }
+}
+
+void Graph::printQoEPeers()
+{
+    double Qa;
+    // double d;
+    for(auto it:peers)
+    {
+        // d += 1-it->QoE;
+        cout<<it->ID<<" "<<it->QoE<<endl;
+    }
+    // cout<<d<<endl;
+    // for(auto it:peers)
+    // {
+    //     Qa += ((1-it->QoE) * it->QoE ) / d;
+    // }
+    // cout<<Qa<<endl;
 }
 #endif
