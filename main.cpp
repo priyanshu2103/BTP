@@ -32,21 +32,41 @@ int main()
         Peer* p = new Peer(i, dist(rng), dist(rng), rAlpha, rLambda);
         G->addPeer(p);
     }
-    G->printPeerInfo();
+    // G->printPeerInfo();
+    auto start = chrono::steady_clock::now();
     G->clusterGraph(nClusters);
+    auto end = chrono::steady_clock::now();
+    cout<<"Time for clustering graph: ";
+    cout<<chrono::duration <double, milli> (end - start).count()<<endl;
     
     // Code for assigning packet chunks to initial clusters
     G->assignPacketsToClusters(NUM_PACKETS);
 
-    G->printSubtrackerInfo();
+//    G->printSubtrackerInfo();
 
 
     // Testing threads for peers
+    start = chrono::steady_clock::now();
     G->startPeers();
+    end = chrono::steady_clock::now();
+    cout<<"Time for Simulation: ";
+    cout<<chrono::duration <double, milli> (end - start).count()<<endl;
+
+
+    G->printPeerQoEs();
+
+    // for(auto it:G->peers)
+    // {
+    //     if(it->errors.size()>0)
+    //     {
+    //         cout<<it->ID<<" ";
+    //     }
+    // }
 
 
     
 
 }
-// TODO: might have to add new class for subtrackers for threading
-// TODO:Code for adding peers to the graph at random time interval
+
+// TODO:
+    // Add queue length also in peer weights

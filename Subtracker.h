@@ -10,16 +10,18 @@ class Subtracker
 {
     public:
         int ID;
-        int x;
-        int y;
+        double x;
+        double y;
         vector<Peer*> peers;
         map<int, vector<Peer*>> packetToPeersMapping; 
 
         mutex m;    // Used for locking individual objects
 
         Subtracker();
-        Peer* getPeer(int, Peer*);
+        Peer* getPeer(int, Peer*, Peer*);
         void packetReceivedNotification(int, Peer*);
+        void printInfo();
+        void printPacketToPeerMapping();
     
 };
 #endif

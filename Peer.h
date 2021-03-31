@@ -12,7 +12,9 @@ class Peer
 {
 
     public:
-        mutex p; 
+        mutex p;
+        condition_variable cv;
+        bool ready;
         int ID;
         double x;
         double y;
@@ -29,6 +31,7 @@ class Peer
         double bestQoE;                     // Stores the best QoE so far of this peer
         double bestAlpha;                   // Stores the alpha corresponding to the best QoE
         double bestLambda;                  // Stores the lambda corresponding to the best QoE
+        vector<int> errors;
 
         // Storing only for Peers which send data to this peer ------DOUBT
         unordered_map<int, double> PeerRTT;   // (1 − α) ∗ received RTT + α ∗ old RTT 
@@ -39,5 +42,6 @@ class Peer
         double getQueueTime();
         void changePeerRTT(int, double);  // PeerRTT[PeerID] = (1 − α) ∗ double + α ∗ old RTT 
         void getPeerCentdian();
+        bool ifReady() const;
 };
 #endif

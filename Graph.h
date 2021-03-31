@@ -2,6 +2,8 @@
 #define _GRAPH_GUARD
 
 #include<bits/stdc++.h>
+
+#include <random>
 #include "cluster.h"
 #include "Subtracker.h"
 #include "MM1.h"
@@ -28,6 +30,8 @@ class Graph
         double c1;
         double c2;
         double w;
+        unordered_map<Peer*, vector<double>> peerQoEs;
+        vector<double> Qas; // Stores the Qa for each iteration
         // unordered_map<int, vector<Peer*>> subtrackerToPeer;  // Stores peers for each subtracker, mapping from ID of subtracker to peer IDs
 
         void addPeer(Peer*);            // Simply add peer in the graph 
@@ -42,7 +46,9 @@ class Graph
         void peerPacketTimes();   
         void getBestParams();
         void changeDPSOParams(int);
-        void printQoEPeers();
+        void getPeerQoE();
+        void printPeerQoEs();
+        bool checkPeerSub(Peer*);     // checks if Peer is a subtracker or not if yes then don't make a thread for it
         Graph(MM1*);
 };
 
@@ -86,7 +92,6 @@ void Graph::assignSubtracker(Peer* peer)
 
     peer->subtracker = SID;
     (SID->peers).push_back(peer);
-    // subtrackerToPeer[SID].push_back(peer);
 }
 
 void Graph::clusterGraph(int nClusters)
@@ -95,30 +100,35 @@ void Graph::clusterGraph(int nClusters)
     computeDistMatrix();
     this->nPeersSince = 0;
 
-    // Empty subtracekrToPeer mapping before clustering
-    // subtrackerToPeer.clear();
-
     // Empty subtrackers vector as subtrackers will be created again and each peer will be a subtracker again
     subtrackers.clear();
 
     // Also empty the IDSubtrackermapping
     IDSubtrackerMapping.clear();
 
-    int npass = 1000;
-    // int* clusterid = (int*)malloc(nPeers*sizeof(int));
-    // cout<<nPeers<<endl;
+    int npass = KMEDOIDS_NUM_PASS;
     int clusterid[nPeers] = {0};
     double error;
     int ifound = 0;
     kmedoids(nClusters, nPeers, distMatrix, npass, clusterid, &error, &ifound);
     printf("----- 1000 passes of the EM algorithm (result should not change)\n");
     printf ("Solution found %d times; within-cluster sum of distances is %f\n",ifound, error);
-    printf ("Cluster assignments:\n");
 
-    // set<int> tempS;
+    //---------------------------------------------------------
+    vector<int> tempS;
+    for(int i=0;i<nPeers;i++){tempS.push_back(i);}
+    shuffle(begin(tempS), end(tempS), std::mt19937(std::random_device()()));
+    vector<int> s;
+    for(int i=0;i<nClusters;i++){s.push_back(tempS[i]);}
+    for(int i=0;i<nPeers;i++)
+    {
+        clusterid[i] = s[i%nClusters];
+    }
+    //---------------------------------------------------------
+
     for (int i = 0; i < nPeers; i++)
     {
-        printf ("Peer %d: cluster %d\n", i, clusterid[i]);
+//        printf ("Peer %d: cluster %d\n", i, clusterid[i]);
 
         // If subtracker not formed yet with this ID  
         if(IDSubtrackerMapping.find(clusterid[i])==IDSubtrackerMapping.end())
@@ -137,29 +147,13 @@ void Graph::clusterGraph(int nClusters)
             (IDSubtrackerMapping[clusterid[i]]->peers).push_back(IDPeerMapping[i]);
             IDPeerMapping[i]->subtracker = IDSubtrackerMapping[clusterid[i]];
         }
-
-        
-
-        // IDPeerMapping[i]->subtrackerID = clusterid[i];
-        // subtrackerToPeer[clusterid[i]].push_back(IDPeerMapping[i]);    // Add peer to subtracker mapping list
-        // tempS.insert(clusterid[i]);
     }
-
-    // // Stores subtracker IDs 
-    // subtrackers.clear();
-    // for(auto it=tempS.begin();it!=tempS.end();it++)
-    // {
-    //     this->subtrackers.push_back(*it);
-    // }
-    // // cout<<"A:"<<subtrackers.size()<<endl;
-
 
 }
 
-// TODO: change this to sqrt later on
 double Graph::computeDistance(Peer* peer1, Peer* peer2)
 {
-    return pow(peer1->x - peer2->x, 2) + pow(peer1->y - peer2->y, 2);
+    return sqrt(pow(peer1->x - peer2->x, 2) + pow(peer1->y - peer2->y, 2));
 }
 
 void Graph::computeDistMatrix()
@@ -184,9 +178,10 @@ void Graph::computeDistMatrix()
 void Graph::printPeerInfo()
 {
     cout<<"----------------------PEER INFO----------------------"<<endl;
+    cout<<"subtracker, QoE, alpha, lambda, bestQoE, bestalpha, bestlambda"<<endl;
     for(int i=0;i<nPeers;i++)
     {
-        cout<<peers[i]->ID<<" : ("<<peers[i]->x<<", "<<peers[i]->y<<")"<<endl;
+        cout<<peers[i]->ID<<" : ("<<peers[i]->subtracker->ID<<", "<<peers[i]->QoE<<", "<<peers[i]->alpha<<", "<<peers[i]->lambda<<", "<<peers[i]->bestQoE<<", "<<peers[i]->bestAlpha<<", "<<peers[i]->bestLambda<<")"<<endl;
     }
 }
 
@@ -272,7 +267,6 @@ void Graph::assignPacketsToClusters(int numPackets)
     }
 }
 
-// TODO: Don't start threads for subtrackers there might be some problems
 void Graph::startPeers()
 {
     // int iter = 0;
@@ -285,11 +279,11 @@ void Graph::startPeers()
         // Chaning the initial variables for all peers
         for(auto it:peers)
         {
+            queue<double>().swap(it->mm1Times);
             it->mm1Times = times;
             it->packets.clear();
             copy(initialPacketAssignment[it].begin(), initialPacketAssignment[it].end(), inserter(it->packets, it->packets.end()));
         }
-
         vector<thread> threads;
         for(auto it=peers.begin();it!=peers.end();it++)
         {
@@ -298,11 +292,9 @@ void Graph::startPeers()
         for(auto& thread: threads){
             thread.join();
         }
-
         cout<<"iteration " << iter <<" complete"<<endl;
-        // peerPacketTimes();
-        printQoEPeers();
-
+        getPeerQoE();
+        
         /*
             We have QoE, alphas, lambdas of all the peers at this moment
             Basically two things to be done after each iteration
@@ -351,8 +343,8 @@ void Graph::startPeers()
             s->ID = bestPeer->ID;
             s->x = bestPeer->x;
             s->y = bestPeer->y;
-            s->peers = it->peers;   // -----TODO: check if previous subtracker is added or not i.e. check if peers in subtracker contains itself or not
-            s->packetToPeersMapping = it->packetToPeersMapping; // TODO: check if this is correct or not
+            s->peers = it->peers;   
+            s->packetToPeersMapping = it->packetToPeersMapping; 
             newSubtrackers.push_back(s);
 
             // Now change the subtracker for all the peers in this cluster i.e. with it as their subtracker
@@ -390,6 +382,17 @@ void Graph::changeDPSOParams(int iter)
     c2 = -2.5 * exp(-1 * (iter * M_PI)/(2 * MAX_ITER)) + 3;
 }
 
+bool Graph::checkPeerSub(Peer *peer)
+{
+    for(auto it:subtrackers)
+    {
+        if(it->ID == peer->ID)
+        {
+            return true;
+        }
+    }
+    return false;
+}
 void Graph::peerPacketTimes()
 {
     for(auto it:peers)
@@ -403,20 +406,52 @@ void Graph::peerPacketTimes()
     }
 }
 
-void Graph::printQoEPeers()
+void Graph::getPeerQoE()
 {
     double Qa;
-    // double d;
+    double d = 0.0;
     for(auto it:peers)
     {
-        // d += 1-it->QoE;
-        cout<<it->ID<<" "<<it->QoE<<endl;
+         d += (double )1-it->QoE;
+        peerQoEs[it].push_back(it->QoE);
     }
-    // cout<<d<<endl;
-    // for(auto it:peers)
-    // {
-    //     Qa += ((1-it->QoE) * it->QoE ) / d;
-    // }
-    // cout<<Qa<<endl;
+     for(auto it:peers)
+     {
+         Qa += ((1-it->QoE) * it->QoE ) / d;
+
+     }
+     Qas.push_back(Qa);
+}
+
+void Graph::printPeerQoEs()
+{
+    vector<double> averageQoe(MAX_ITER, 0.0);
+    for(auto it:peerQoEs)
+    {
+        cout<<it.first->ID<<": ";
+        int i=0;
+        for(auto it1:it.second)
+        {
+            averageQoe[i] += it1;
+            i++;
+            cout<<it1<<" ";
+        }
+        cout<<endl;
+    }
+    cout<<"Average QoEs:"<<endl;
+    for(auto it:averageQoe)
+    {
+        cout<<it<<" ";
+    }
+    cout<<endl;
+
+    cout<<"Qas"<<endl;
+    for(auto it:Qas)
+    {
+        cout<<it<<" ";
+    }
+    cout<<endl;
+
+
 }
 #endif

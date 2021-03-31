@@ -37,8 +37,6 @@ void Peer::operate()
     // Distance between this peer and the subtracker
     double distanceFromSubtracker = sqrt(pow((x - subtracker->x), 2) + pow((y - subtracker->y), 2));
 
-
-    // change this 10 to a variable by adding a constants file
     for(int i=0;i<NUM_PACKETS;i++)
     {
         if(packets.find(i)!=packets.end())
@@ -50,35 +48,44 @@ void Peer::operate()
         {
             // Wait for RTT/2
             // TODO: may have to change speed of transmission from 3*10^8 to something else
-            this_thread::sleep_for(chrono::nanoseconds((int)(distanceFromSubtracker*pow(10, 9)/(2*TRASMISSION_SPEED))));    // Add this time
-            Peer* p = subtracker->getPeer(i, this);
+            this_thread::sleep_for(chrono::nanoseconds((int)(distanceFromSubtracker*pow(10, 9)/(2*TRASMISSION_SPEED))));    // Add this time.
+            ready = false;
+            Peer *peer = nullptr;
+            while(!ready){peer = subtracker->getPeer(i, this, peer);}
+
             // Again wait for RTT/2 as subtracker takes time to return the peer
-            this_thread::sleep_for(chrono::nanoseconds((int)(distanceFromSubtracker*pow(10, 9)/(2*TRASMISSION_SPEED)))); 
+            this_thread::sleep_for(chrono::nanoseconds((int)(distanceFromSubtracker*pow(10, 9)/(2*TRASMISSION_SPEED))));
             changePeerRTT(subtracker->ID, (distanceFromSubtracker*pow(10, 9)/TRASMISSION_SPEED));
 
             // Wait for the peer to send this packet
-            double distance = computeDistance(this, p);
+            double distance = computeDistance(this, peer);
             // RTT to receive the packet from peer
             this_thread::sleep_for(chrono::nanoseconds((int)(distance*pow(10, 9)/(TRASMISSION_SPEED))));
-            changePeerRTT(p->ID, distance*pow(10, 9)/TRASMISSION_SPEED);
+            changePeerRTT(peer->ID, distance*pow(10, 9)/TRASMISSION_SPEED);
 
             // MM1 Queue time for other peer
-            double queueTime = p->getQueueTime();
+            double queueTime = getQueueTime();
             this_thread::sleep_for(chrono::nanoseconds((int)(queueTime)));
-            changePeerRTT(p->ID, queueTime);
+            changePeerRTT(peer->ID, queueTime);
 
             // Again wait for RTT/2 to notify the susbtracker that I have this packet
             this_thread::sleep_for(chrono::nanoseconds((int)(distanceFromSubtracker*pow(10, 9)/(2*TRASMISSION_SPEED))));
-            subtracker->packetReceivedNotification(i, this);
             changePeerRTT(subtracker->ID, (distanceFromSubtracker*pow(10, 9)/2*TRASMISSION_SPEED));
 
             packets.insert(i);
-            packetTime[i] = {p->ID, queueTime + 3*(distanceFromSubtracker*pow(10, 9)/(2*TRASMISSION_SPEED)) + distance*pow(10, 9)/(TRASMISSION_SPEED)};
+            packetTime[i] = {peer->ID, queueTime + 3*(distanceFromSubtracker*pow(10, 9)/(2*TRASMISSION_SPEED)) + distance*pow(10, 9)/(TRASMISSION_SPEED)};
+            if(peer->ID == this->ID)
+            {
+                errors.push_back(i);
+            }
+
         }
     }
 
+    getPeerCentdian();
+
     // QoE computation after receiving all packets
-    double mean, sd;
+    double mean = 0, sd = 0;
     int count = 0;
     for(auto it=packetTime.begin();it!=packetTime.end();it++)
     {
@@ -100,8 +107,7 @@ void Peer::operate()
     sd /= count;
     sd = sqrt(sd);
 
-    this->QoE = (double)1/(mean + sd);
-
+    this->QoE = (double)1/(mean + sd) * 1000;
     // Storing the best QoE, alpha dn lambda values
     if(QoE >= bestQoE)
     {
@@ -118,7 +124,6 @@ double Peer::computeDistance(Peer* peer1, Peer* peer2)
 
 double Peer::getQueueTime()
 {
-    lock_guard<mutex> guard(p);
     double time = mm1Times.front();
     mm1Times.pop();
     return time;
@@ -167,4 +172,8 @@ void Peer::getPeerCentdian()
     centdianScore = lambda * center + (1-lambda) * median;
 
 
+}
+
+bool Peer::ifReady() const {
+    return ready;
 }
