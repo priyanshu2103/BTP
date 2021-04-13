@@ -26,7 +26,9 @@ class Graph
         unordered_map<Peer*, vector<int>> initialPacketAssignment;  // Stores peer to packet assignment for use in iterations
         double globalBestAlpha;
         double globalBestLambda;
+        double globalBestGamma;
         unordered_map<Peer*, pair<double, double>> velocitiesParams;    // Peer->{v1, v2} v1->velocity for alpha dna v2->veloity for lambda
+        unordered_map<Peer*, double> velocityGamma;
         double c1;
         double c2;
         double w;
@@ -178,10 +180,10 @@ void Graph::computeDistMatrix()
 void Graph::printPeerInfo()
 {
     cout<<"----------------------PEER INFO----------------------"<<endl;
-    cout<<"subtracker, QoE, alpha, lambda, bestQoE, bestalpha, bestlambda"<<endl;
+    cout<<"subtracker, QoE, alpha, lambda,gamma, bestQoE, bestalpha, bestgamma, bestlambda"<<endl;
     for(int i=0;i<nPeers;i++)
     {
-        cout<<peers[i]->ID<<" : ("<<peers[i]->subtracker->ID<<", "<<peers[i]->QoE<<", "<<peers[i]->alpha<<", "<<peers[i]->lambda<<", "<<peers[i]->bestQoE<<", "<<peers[i]->bestAlpha<<", "<<peers[i]->bestLambda<<")"<<endl;
+        cout<<peers[i]->ID<<" : ("<<peers[i]->subtracker->ID<<", "<<peers[i]->QoE<<", "<<peers[i]->alpha<<", "<<peers[i]->lambda<<", "<<peers[i]->gamma<<", "<<peers[i]->bestQoE<<", "<<peers[i]->bestAlpha<<", "<<peers[i]->bestLambda<<peers[i]->bestGamma<<")"<<endl;
     }
 }
 
@@ -313,7 +315,9 @@ void Graph::startPeers()
                 double randNum2 = static_cast <double> (rand()) / static_cast <double> (RAND_MAX);   
                 double va = w * velocitiesParams[it].first + c1 * randNum * (it->bestAlpha - it->alpha) + c2 * randNum2 * (globalBestAlpha - it->alpha);
                 double vl = w * velocitiesParams[it].second + c2 * randNum * (it->bestLambda - it->lambda) + c2 * randNum2 * (globalBestLambda - it->lambda);
+                double vg = w * velocityGamma[it] + c2 * randNum * (it->bestGamma - it->gamma) + c2 * randNum2 * (globalBestGamma - it->gamma);
                 velocitiesParams[it] = {va, vl};
+                velocityGamma[it] = vg;
         }
 
         // Change alpha and lambda for each peer
@@ -321,6 +325,7 @@ void Graph::startPeers()
         {
             it->alpha += velocitiesParams[it].first;
             it->lambda += velocitiesParams[it].second;
+            it->gamma = velocityGamma[it];
         }
 
         // Subtracker management algorithm
@@ -371,6 +376,8 @@ void Graph::getBestParams()
         {
             globalBestAlpha = it->bestAlpha;
             globalBestLambda = it->bestLambda;
+            globalBestGamma = it->bestGamma;
+            
         }
     }
 }

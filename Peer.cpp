@@ -2,13 +2,14 @@
 
 using namespace std;
 
-Peer::Peer(int ID, double x, double y, double rAlpha, double rLambda)
+Peer::Peer(int ID, double x, double y, double rAlpha, double rLambda, double rGamma)
 {
     this->ID = ID;
     this->x = x;
     this->y = y;
     this->alpha = rAlpha;
     this->lambda = rLambda;
+    this->gamma = rGamma;
     this->bestQoE = 0.0;
     packetTime.assign(NUM_PACKETS, {0, 0});
 }
@@ -64,7 +65,7 @@ void Peer::operate()
             changePeerRTT(peer->ID, distance*pow(10, 9)/TRASMISSION_SPEED);
 
             // MM1 Queue time for other peer
-            double queueTime = getQueueTime();
+            double queueTime = peer->getQueueTime();
             this_thread::sleep_for(chrono::nanoseconds((int)(queueTime)));
             changePeerRTT(peer->ID, queueTime);
 
@@ -108,12 +109,17 @@ void Peer::operate()
     sd = sqrt(sd);
 
     this->QoE = (double)1/(mean + sd) * 1000;
+    
+    // Add queue length also to the QoE
+    // The more number of packets this peer gives to others -> less will be its length and more should be its contribution to QoE
+
     // Storing the best QoE, alpha dn lambda values
     if(QoE >= bestQoE)
     {
         bestQoE = QoE;
         bestAlpha = alpha;
         bestLambda = lambda;
+        bestGamma = gamma;
     }
 
 }
@@ -169,7 +175,7 @@ void Peer::getPeerCentdian()
     {
         median = list[list.size()/2];
     }
-    centdianScore = lambda * center + (1-lambda) * median;
+    centdianScore = lambda * center + (1-lambda) * median + gamma * mm1Times.size();
 
 
 }

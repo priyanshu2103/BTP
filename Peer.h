@@ -27,16 +27,18 @@ class Peer
         double QoE;                         // Given by 1/(mean+standard deviation) mean and standard deviation are of packet times
         double alpha;                       // RTT parameter
         double lambda;                      // Centdian calculation parameter
+        double gamma;                       // Centdian parameter for queue length
         double centdianScore;
         double bestQoE;                     // Stores the best QoE so far of this peer
         double bestAlpha;                   // Stores the alpha corresponding to the best QoE
         double bestLambda;                  // Stores the lambda corresponding to the best QoE
+        double bestGamma;
         vector<int> errors;
 
         // Storing only for Peers which send data to this peer ------DOUBT
         unordered_map<int, double> PeerRTT;   // (1 − α) ∗ received RTT + α ∗ old RTT 
 
-        Peer(int, double, double, double, double);
+        Peer(int, double, double, double, double, double);
         double computeDistance(Peer*, Peer*);
         void operate();
         double getQueueTime();

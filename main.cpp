@@ -29,7 +29,8 @@ int main()
         // Initially assign random alpha and labda values to the peers
         double rAlpha = static_cast <double> (rand()) / static_cast <double> (RAND_MAX);
         double rLambda = static_cast <double> (rand()) / static_cast <double> (RAND_MAX);
-        Peer* p = new Peer(i, dist(rng), dist(rng), rAlpha, rLambda);
+        double rGamma = static_cast <double> (rand()) / static_cast <double> (RAND_MAX);
+        Peer* p = new Peer(i, dist(rng), dist(rng), rAlpha, rLambda, rGamma);
         G->addPeer(p);
     }
     // G->printPeerInfo();
@@ -67,6 +68,3 @@ int main()
     
 
 }
-
-// TODO:
-    // Add queue length also in peer weights
