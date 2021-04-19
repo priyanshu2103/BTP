@@ -112,9 +112,9 @@ void Graph::clusterGraph(int nClusters)
     int clusterid[nPeers] = {0};
     double error;
     int ifound = 0;
-    kmedoids(nClusters, nPeers, distMatrix, npass, clusterid, &error, &ifound);
-    printf("----- 1000 passes of the EM algorithm (result should not change)\n");
-    printf ("Solution found %d times; within-cluster sum of distances is %f\n",ifound, error);
+    //kmedoids(nClusters, nPeers, distMatrix, npass, clusterid, &error, &ifound);
+    //printf("----- 1000 passes of the EM algorithm (result should not change)\n");
+    //printf ("Solution found %d times; within-cluster sum of distances is %f\n",ifound, error);
 
     //---------------------------------------------------------
     vector<int> tempS;
